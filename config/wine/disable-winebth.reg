@@ -1,5 +1,0 @@
-Windows Registry Editor Version 5.00
-
-; Supplementary service setting. Also disable winebth.sys in Bottles DLL Overrides.
-[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\winebth]
-"Start"=dword:00000004
