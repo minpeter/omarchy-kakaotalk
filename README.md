@@ -13,6 +13,8 @@ Omarchy에서 Windows 카카오톡을 **Bottles + Soda + XWayland + Fcitx5**로 
 - `wineserver`의 CPU 사용량이 코어 하나 기준 약 **98–100% → 1–3%**로 줄었다.
 - `system.reg`가 약 **907MB → 5.8MB**로 줄었고, Wine 블루투스 장치 기록의 재누적을 차단했다.
 - 화면에 남던 **100×13 크기의 빈 Wine 창**을 투명하게 만들고 포커스를 차단했다.
+- 화면이 작게 보이는 문제는 카카오톡 Bottle의 DPI를 **96 → 134(약 1.4배)**로 올려 해결했다.
+  재실행 후 사용자가 크기가 적당하다고 확인했다.
 
 성능 수치는 이 컴퓨터에서 측정한 값이다. 레지스트리 정리와 실행기 변경을 함께 수행했으므로,
 체감 개선 전부를 한 설정의 효과로 분리해서 측정한 결과는 아니다.
@@ -43,6 +45,7 @@ Flatpak Bottles는 실행 명령, 파일 접근 권한, prefix 위치가 다르�
 - [동작한 Bottle 설정](#bottle)
 - [Wine 블루투스 차단](#bluetooth)
 - [한글 입력과 글꼴](#ime)
+- [화면이 너무 작다면](#dpi)
 - [작은 빈 창 숨기기](#window)
 - [진단·백업·복구](#recovery)
 - [자동 실행·URL·경로와 추가 설정](#reference)
@@ -133,7 +136,7 @@ HKEY_LOCAL_MACHINE\System\ControlSet001\Enum\WINEBTH
 | DXVK / VKD3D / D7VK | 모두 꺼짐 |
 | Wine Wayland | 꺼짐 — XWayland 사용 |
 | 가상 데스크톱 / Gamescope / FPS 제한 | 꺼짐 / 꺼짐 / `0` |
-| DPI | `96` |
+| DPI | `134` — 초기 96에서 약 1.4배로 조정 |
 | Bottles Runtime | 꺼짐 |
 | 동기화 설정 | `fsync` |
 | 시스템 환경 변수 제한 | 켜짐, `XMODIFIERS` 상속 허용 |
@@ -325,6 +328,62 @@ NotoSansCJK-Bold.ttc
 fc-match -f '%{file}\n' 'Noto Sans CJK KR'
 ```
 글꼴 바이너리는 이 저장소에 포함하지 않는다.
+
+<a id="dpi"></a>
+
+## 화면이 너무 작다면
+
+모니터 배율은 160%인데 카카오톡 글씨와 버튼만 작게 보였다.
+이 환경에서 카카오톡은 **XWayland**로 실행되고, Omarchy는
+`xwayland.force_zero_scaling = true`를 사용한다.
+이 옵션은 확대된 모니터에서도 XWayland 창을 1배율로 강제한다.
+[Hyprland 공식 설명](https://wiki.hypr.land/Configuring/Basics/Variables/#xwayland)
+
+Wine 쪽 DPI도 기본값인 96이었으므로, 이 경우에는 **카카오톡 Bottle의 DPI만 올리는 방식**을 사용했다.
+Hyprland의 모니터 배율·XWayland 전역 설정은 바꾸지 않았다.
+
+### 약 1.4배로 키우기
+
+1. 진행 중인 작업을 저장하고, 변경 전 해당 Bottle을 백업한다.
+   종료·백업 방법은 [진단·백업·복구](#recovery)를 참고한다.
+2. Bottles에서 **KakaoTalk Bottle의 디스플레이 설정**을 열어 DPI를 **134**로 지정하고 저장한다.
+   UI의 명칭·위치는 Bottles 버전에 따라 다를 수 있다.
+3. 설정 저장이 완료되면 해당 Bottle의 Wine 프로세스를 완전히 종료하고 카카오톡을 다시 실행한다.
+   창만 닫아 트레이에 남은 상태는 완전 종료가 아니다.
+
+`134 ÷ 96 ≈ 1.396`이므로 기본값 대비 약 140%다.
+이 환경에서는 적용·재실행 후 사용자가 글씨와 버튼 크기가 적당하다고 확인했다.
+모니터의 160%에 140%를 추가로 곱하는 설정은 아니다. 위의 XWayland 1배율 설정을 유지한 상태에서
+Wine 내부 DPI를 올린 것이다.
+
+저장된 Bottle 설정은 다음과 같다. **값 확인용 발췌이며 이 블록으로 설정 파일을 덮어쓰지 않는다.**
+
+```yaml
+Parameters:
+    custom_dpi: 134
+```
+
+Bottles의 DPI 설정은 다음 Wine 레지스트리 값도 함께 갱신한다.
+`bottle.yml`의 숫자만 바꾸는 것으로 끝내지 않는다.
+
+```text
+HKEY_CURRENT_USER\Control Panel\Desktop
+LogPixels = 134 (REG_DWORD, 16진수 0x86)
+```
+
+이번 적용에서는 Bottle을 종료하고 설정을 백업한 뒤 위 두 값을 변경했다.
+재실행 후에는 `HKCU\Software\Wine\Fonts\LogPixels`도 `0x86`으로 갱신된 것을 확인했다.
+이 Fonts 값은 재실행 결과를 확인한 것이며, 별도로 수동 변경할 필요가 있다는 뜻은 아니다.
+
+### 원래 크기로 되돌리기와 주의점
+
+- 같은 디스플레이 설정에서 DPI를 **96**으로 되돌리고 해당 Bottle을 완전히 종료·재실행한다.
+- 이 값은 **카카오톡 Bottle 전체**에 적용된다. 그 안에 다른 Windows 앱이 있다면 함께 영향을 받을 수 있다.
+  다른 Bottle이나 Linux 앱의 배율을 바꾸지는 않는다.
+- 모니터를 옮길 때 배율을 자동으로 따라가는 기능은 아니다. 고정 DPI 보정이다.
+- `winebth.sys` 차단과 Qt 렌더링 환경 변수는 그대로 유지했다.
+- DPI 변경 후 보조 창 크기도 100×13에서 130×17로 달라졌다.
+  아래 숨김 규칙은 크기를 조건으로 사용하지 않으므로 크기에 맞춰 수정하지 않았다.
 
 <a id="window"></a>
 
@@ -617,7 +676,8 @@ winemenubuilder.exe = (빈 문자열)
 
 | 위치 | 값 |
 | --- | --- |
-| `HKCU\Software\Wine\Fonts\LogPixels` | `0x60` = 96 DPI |
+| `HKCU\Control Panel\Desktop\LogPixels` | `0x86` = 134 DPI — 크기 조정 시 추가 |
+| `HKCU\Software\Wine\Fonts\LogPixels` | 초기 `0x60` = 96 DPI → 조정·재실행 후 `0x86` = 134 DPI |
 | `HKCU\Software\Wine\Fonts\Codepages` | `1252,437` |
 | `HKCU\Control Panel\Desktop\FontSmoothing` | 문자열 `2` |
 | `FontSmoothingGamma` | `0x578` |
