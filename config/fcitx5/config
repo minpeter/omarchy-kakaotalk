@@ -1,0 +1,16 @@
+[Hotkey]
+# Ctrl+Space is tmux prefix on this machine, so Shift+Space is the 한/영 toggle.
+EnumerateWithTriggerKeys=True
+EnumerateSkipFirst=False
+
+[Hotkey/TriggerKeys]
+0=Shift+space
+
+[Hotkey/AltTriggerKeys]
+0=
+
+[Hotkey/EnumerateGroupForwardKeys]
+0=
+
+[Hotkey/EnumerateGroupBackwardKeys]
+0=
